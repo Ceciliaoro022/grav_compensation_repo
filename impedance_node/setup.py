@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'impedance_node = impedance_node.impedance_node:main'
         ],
     },
 )

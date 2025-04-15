@@ -12,7 +12,7 @@ def generate_launch_description():
         default_value=default_urdf_path,
     )
       
-    gravity_compensation = Node(
+    gravity_compensation_pinocchio = Node(
         package='pinocchio_',
         executable='gravity_compensation',
         name='gravity_compensation',
@@ -21,8 +21,16 @@ def generate_launch_description():
             'urdf_path': LaunchConfiguration('urdf_path')
         }]
     )
+
+    impedance_node_ = Node(
+        package='impedance_node',
+        executable='impedance_node',
+        name='impedance_node',
+        output='screen',
+    )
     
     return LaunchDescription([
         urdf_path_arg,
-        gravity_compensation
+        gravity_compensation_pinocchio,
+        impedance_node_
     ])
