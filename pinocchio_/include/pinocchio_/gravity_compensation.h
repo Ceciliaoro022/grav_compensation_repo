@@ -15,6 +15,7 @@
 
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 class GravityCompensationNode : public rclcpp::Node
 {
@@ -28,6 +29,8 @@ private:
 
   pinocchio::Model model_;
   pinocchio::Data data_;
+  std::unordered_map<std::string, std::string> joint_name_map_;
+  
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr gravity_torque_pub_;
 };

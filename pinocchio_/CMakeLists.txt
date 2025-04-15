@@ -48,6 +48,9 @@ install(TARGETS
 
 install(DIRECTORY
   include/
+  src/
+  urdf
+  launch
   DESTINATION share/${PROJECT_NAME}
 )
 
