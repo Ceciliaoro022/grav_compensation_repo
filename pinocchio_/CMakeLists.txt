@@ -7,9 +7,53 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(gazebo_ros REQUIRED)
+find_package(ros2_control REQUIRED)
+find_package(ros2_controllers REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(pinocchio REQUIRED)
+find_package(Eigen3 REQUIRED)
+
+
+include_directories(
+  include
+  ${rclcpp_INCLUDE_DIRS}
+  ${pinocchio_INCLUDE_DIRS}
+  ${sensor_msgs_INCLUDE_DIRS}
+  ${std_msgs_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
+)
+
+
+add_executable(gravity_compensation
+  src/gravity_compensation.cpp
+)
+
+ament_target_dependencies(gravity_compensation
+  rclcpp
+  sensor_msgs
+  pinocchio
+  std_msgs
+)
+
+
+
+install(TARGETS
+  gravity_compensation
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
+install(DIRECTORY
+  include/
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
