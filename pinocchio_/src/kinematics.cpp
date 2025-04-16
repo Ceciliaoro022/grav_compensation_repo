@@ -35,6 +35,19 @@ public:
         // Create data required by the algorithms
         data = pinocchio::Data(model); 
 
+        //joint_name_map 
+        joint_name_map_={
+            {"joint_a1", "joint_a1"},
+            {"joint_a2", "joint_a2"},
+            {"joint_a3", "joint_a3"},
+            {"joint_a4", "joint_a4"},
+            {"joint_a5", "joint_a5"},
+            {"joint_a6", "joint_a6"},
+            {"joint_a7", "joint_a7"},
+            {"mini_joint1", "joint1"},
+            {"mini_joint2", "joint2"}
+        };
+
         std::cout << "model name: " << model.name << std::endl;
         std::cout << "URDF model " << model.name << " has " << model.njoints << " joints" << std::endl;
         std::cout << "It has " << model.nq << " degrees of freedom" << std::endl;
@@ -66,6 +79,8 @@ private: //For the class
     Eigen::VectorXd v;
     // If needed, you can also add: Eigen::VectorXd v;
 
+    std::unordered_map<std::string, std::string> joint_name_map_;
+
     //They hold the shared pointers to the publisher, subscriber and timer
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr torque_pub_; 
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
@@ -79,27 +94,28 @@ private: //For the class
 
         for (size_t i = 0; i < model.names.size(); ++i ) // Changed mode.size() to model.names.size()
         {
-            RCLCPP_INFO(this->get_logger(), "Model Joint %zu: %s", i, model.names[i].c_str()); // Changed model.name[i] to model.names[i]
             
             const std::string& joint_name = model.names[i]; //Obtain the joint name from the model from teh current state
 
             if (joint_name == "universe") continue; //We do not care about universe joint, it is not that I have this joint but
             
+
             //Finding the joint name in the message
-            auto it = std::find(msg->name.begin(), msg->name.end(), joint_name);
-            if (it != msg->name.end()) //Check if joint was found
-            {
-                size_t index = std::distance(msg->name.begin(), it); //calculates the index of the joint in the msg->name vector
-                // Ensure we're not out of bounds
-                if (index < msg->position.size() && i < q.size())
-                {
-                    q[i] = msg->position[index]; //if both conditions are satisfied, it assigns the joint’s position from the message to
+            for (const auto& [urdf_joint_name, gazebo_joint_name]:joint_name_map_){
+                auto i = std::find(msg->name.begin(), msg->name.end(), gazebo_joint_name); //Looks for joint1 and joint2 from the Gazebo names
+                if (i != msg->name.end()){ //If the joint is found..
+                    size_t gazebo_index = std::distance(msg->name.begin(), i); //Distance between begin to iterator
+                    pinocchio::JointIndex joint_id = model.getJointId(urdf_joint_name); //It checks where does pinocchio positioned mini_joint1 from its model
+                    if (joint_id == 0) continue; // ID 0 is usually the "universe" joint
+                    
+                    int q_index = model.joints[joint_id].idx_q(); //Joint in "gazebo order"
+                    q(q_index) = msg->position[gazebo_index]; //It orders the joints in "pinocchio order" and passes the angle value
+                }
+                else { //If joint not found, warning
+                    RCLCPP_INFO(this->get_logger(), "Joint '%s' not found in /joint_states", gazebo_joint_name.c_str());
                 }
             }
-            else
-            {
-                RCLCPP_WARN(this->get_logger(), "Joint %s not found in received joint states.", joint_name.c_str());
-            }
+
         }
     }
 

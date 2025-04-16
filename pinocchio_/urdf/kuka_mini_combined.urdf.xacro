@@ -11,7 +11,7 @@
     <!-- <xacro:iiwa  -->
 
     <!-- Include the mini -->
-    <xacro:include filename="$(find mini_control)/description/urdf/rrbot.urdf.xacro"/>
+    <xacro:include filename="$(find pinocchio_)/urdf/rrbot_2.urdf.xacro"/>
 
 
     <xacro:iiwa parent="world" prefix="">
