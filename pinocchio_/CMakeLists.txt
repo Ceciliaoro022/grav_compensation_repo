@@ -31,8 +31,19 @@ add_executable(gravity_compensation
   src/gravity_compensation.cpp
 )
 
+add_executable(kinematics
+  src/kinematics.cpp
+)
+
 
 ament_target_dependencies(gravity_compensation
+  rclcpp
+  sensor_msgs
+  pinocchio
+  std_msgs
+)
+
+ament_target_dependencies(kinematics
   rclcpp
   sensor_msgs
   pinocchio
@@ -43,6 +54,7 @@ ament_target_dependencies(gravity_compensation
 
 install(TARGETS
   gravity_compensation
+  kinematics
   DESTINATION lib/${PROJECT_NAME}
 )
 

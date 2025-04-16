@@ -66,7 +66,8 @@ class ImpedanceNode(Node):
         # Reset the flag once the data is available so the warning can show again if needed
         self._warned_waiting = False
 
-        tau_impedance = self.K @ (self.q_desired - self.q_pos_current[:2]) - self.D @ (self.q_vel_current[:2])
+        #Only for the first two joints because topic  /joint_states gazebo shows joint1 and joint2 first
+        tau_impedance = self.K @ (self.q_desired - self.q_pos_current[:2]) - self.D @ (self.q_vel_current[:2]) 
 
         if not self.received_gravity:
             self.get_logger().warn("Waiting for gravity torque...")
