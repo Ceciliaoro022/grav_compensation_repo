@@ -3,7 +3,7 @@
 GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation")
 {
 
-  this->declare_parameter("urdf_path", "/tmp/kuka_mini_combined.urdf"); //Careful with spaces in the path..
+  this->declare_parameter("urdf_path", "/tmp/kuka_mini_combined.urdf "); //Careful with the spaces!! do not add anything after .urdf/
   std::string urdf_path = this->get_parameter("urdf_path").as_string();
   
   pinocchio::urdf::buildModel(urdf_path, model_);
@@ -25,36 +25,17 @@ GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation"
   joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
     "/joint_states", 10, 
     std::bind(&GravityCompensationNode::joint_state_callback, this, std::placeholders::_1));
-
-  //rotation matrix subscriber
-  rotation_matrix_sub = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-      "/rotation_matrix", 10, 
-      std::bind(&GravityCompensationNode::rotation_matrix_callback, this, std::placeholders::_1));
   
   //gravity torque publisher
   gravity_torque_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
     "/gravity_torques", 10);
+
+  //rotation matrix mini publisher
+  rotation_matrix_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+    "/gravity_torques", 10);
     
   RCLCPP_INFO(this->get_logger(), "Gravity compensation node started");
 }
-
-Eigen::Matrix3d rotation_matrix_for_mini;
-void GravityCompensationNode::rotation_matrix_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
-{
-  // Ensure the message contains 9 elements for the 3x3 matrix
-  if (msg->data.size() == 9)
-  {
-    // Convert the incoming message data into a 3x3 Eigen matrix
-    rotation_matrix_for_mini << msg->data[0], msg->data[1], msg->data[2],
-                                msg->data[3], msg->data[4], msg->data[5],
-                                msg->data[6], msg->data[7], msg->data[8];
-  }
-  else
-  {
-    RCLCPP_WARN(this->get_logger(), "Received rotation matrix with incorrect size: %zu", msg->data.size());
-  }
-}
-
 
 void GravityCompensationNode::joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
@@ -78,8 +59,7 @@ void GravityCompensationNode::joint_state_callback(const sensor_msgs::msg::Joint
   }
 
 
-  pinocchio::SE3::Vector3 current_gravity = rotation_matrix_for_mini * pinocchio::SE3::Vector3(0, 0, -9.81);
-  model_.gravity.linear(current_gravity);
+
 
   Eigen::VectorXd tau_g = pinocchio::rnea(model_, data_, q, v, a);
   
