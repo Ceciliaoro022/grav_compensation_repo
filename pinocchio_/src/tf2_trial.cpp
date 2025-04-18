@@ -2,14 +2,6 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 
-#include <pinocchio/parsers/urdf.hpp>
-#include <pinocchio/algorithm/rnea.hpp>
-#include <pinocchio/algorithm/joint-configuration.hpp>
-#include <pinocchio/algorithm/kinematics.hpp> //!!!
-#include <pinocchio/multibody/fcl.hpp>
-#include <pinocchio/multibody/geometry.hpp>
-#include <pinocchio/serialization/serializable.hpp>
-
 #include <memory>
 #include <vector>
 #include <Eigen/Geometry>
@@ -35,6 +27,8 @@ public:
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+        rotation_matrix_pub = this->create_publisher<std_msgs::msg::Float64MultiArray >("/rotation_matrix", 10);
+
         // Timer to continuously check for the transform at a specified rate
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(1000), std::bind(&TransformListenerNode::getTransform, this));
@@ -46,6 +40,8 @@ private:
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
     rclcpp::TimerBase::SharedPtr timer_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_pub;
 
     void getTransform()
     {
@@ -76,7 +72,20 @@ private:
             // Handle error if transformation can't be found
             RCLCPP_WARN(this->get_logger(), "Could not get transform: %s", ex.what());
         }
-    }
+
+        Eigen::Matrix3d rotation_matrix_for_mini;
+
+        std_msgs::msg::Float64MultiArray rotation_matrix_for_mini_msg;
+        rotation_matrix_for_mini_msg.data = {
+            rotation_matrix_for_mini(0,0), rotation_matrix_for_mini(0,1), rotation_matrix_for_mini(0,2),
+            rotation_matrix_for_mini(1,0), rotation_matrix_for_mini(1,1), rotation_matrix_for_mini(1,2),
+            rotation_matrix_for_mini(2,0), rotation_matrix_for_mini(2,1), rotation_matrix_for_mini(2,2),
+        };
+
+        rotation_matrix_pub->publish(rotation_matrix_for_mini_msg);
+    };
+
+
 };
 
 int main(int argc, char **argv)

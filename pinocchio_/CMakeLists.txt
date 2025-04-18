@@ -67,7 +67,6 @@ ament_target_dependencies(kinematics
 ament_target_dependencies(tf2_trial
   rclcpp
   sensor_msgs
-  pinocchio
   std_msgs
   geometry_msgs
   tf2
