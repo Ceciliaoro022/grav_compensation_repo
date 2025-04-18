@@ -13,6 +13,11 @@
   <depend>std_msgs</depend>
   <depend>pinocchio</depend>
   <depend>eigen</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
 
   <exec_depend>python3-pinocchio</exec_depend>
   <exec_depend>python3-numpy</exec_depend>

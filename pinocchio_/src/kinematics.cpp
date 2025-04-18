@@ -21,6 +21,13 @@
 #include <unistd.h>
 #include <algorithm> 
 
+#include <geometry_msgs/msg/vector3.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
+
+
 class ForwardKinematics: public rclcpp::Node
 {
 public:
@@ -57,17 +64,22 @@ public:
             std::cout << "Joint " << i << " has name " << model.names[i] << std::endl;
         }
 
-        q = pinocchio::neutral(model); //neutral bc I cannot use randomConfiguration bc I use continuous joints and it gives me some issues, but I
+        q = pinocchio::neutral(model); //neutral bc I cannot use randomConfiguration bc I use continuous joints and it gives me some issues, but I am using revolute now, so?? check if important **
         v = Eigen::VectorXd::Zero(model.nv); // velocity vector
 
         RCLCPP_INFO(this->get_logger(), "Loaded model: %s with DOF: %zu", model.name.c_str(), model.nq); //c_str to pass a string to functions that expect a const char*
         
-        Eigen::VectorXd q; //Because Pinocchio uses EigenValues I need to convert them
+        //Eigen::VectorXd q; //Because Pinocchio uses EigenValues I need to convert them
 
         joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
             "/joint_states", 10, std::bind(&ForwardKinematics::jointStateCallback, this, std::placeholders::_1));
         
         forward_kinematics_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("/forward_kinematics_info", 10);
+
+        mini_base_frame_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("/mini_base_frame", 10);
+
+        rotation_matrix_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/rotation_matrix_mini", 10);
+
 
         timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&ForwardKinematics::computeAndPublishForwarKinematics, this));
     }
@@ -85,6 +97,9 @@ private: //For the class
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr torque_pub_; 
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr forward_kinematics_pub;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mini_base_frame_pub;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_pub_;
+    
     rclcpp::TimerBase::SharedPtr timer_;
 
     void jointStateCallback(const sensor_msgs::msg::JointState::SharedPtr msg)
@@ -110,19 +125,78 @@ private: //For the class
                     
                     int q_index = model.joints[joint_id].idx_q(); //Joint in "gazebo order"
                     q(q_index) = msg->position[gazebo_index]; //It orders the joints in "pinocchio order" and passes the angle value
+
+                    //RCLCPP_INFO(this->get_logger(), "Updating joint '%s' from '%s' with value %.4f",
+                    //urdf_joint_name.c_str(), gazebo_joint_name.c_str(), msg->position[gazebo_index]);
                 }
                 else { //If joint not found, warning
                     RCLCPP_INFO(this->get_logger(), "Joint '%s' not found in /joint_states", gazebo_joint_name.c_str());
                 }
+                
+                
             }
 
         }
+
     }
+
+
 
     void computeAndPublishForwarKinematics()
     {
-        pinocchio::forwardKinematics(model, data, q, v); //I cannot store it inside a variable so let's use oMi
-        
+        pinocchio::forwardKinematics(model, data, q, v); 
+
+        //To obtain my mini_base_link frame with respect to my world 
+        pinocchio::updateGlobalPlacements(model, data); // Updates the position of each frame contained in the model. It gave me an error when using updateFramePlacements (so it depends on the Pinocchio's version)
+
+        std::cout << "q: " << q.transpose() << std::endl;
+
+        pinocchio::FrameIndex mini_base_index = model.getFrameId("mini_base_link"); //
+
+        if (mini_base_index == 0) {
+            RCLCPP_ERROR(this->get_logger(), "Frame 'mini_base_link' not found in the Pinocchio model!");
+            return;
+        }
+
+        for (size_t i = 0; i < model.frames.size(); ++i) {
+            std::cout << "Frame " << i << " name: " << model.frames[i].name << std::endl;
+        }
+
+        auto tool0_id = model.getFrameId("tool0");
+        auto tool0_pose = data.oMf[tool0_id]; //pose from world to tool0 frame
+
+        pinocchio::SE3 Transform_tool0_id_to_mini = data.oMf[tool0_id].inverse() * data.oMf[mini_base_index]; //oMf gives the transform from the world frame to tool0 frame
+
+
+        Eigen::Vector3d position = Transform_tool0_id_to_mini.translation();
+        Eigen::Matrix3d rotation = Transform_tool0_id_to_mini.rotation();
+        Eigen::Vector3d euler = rotation.eulerAngles(0,1,2); //
+
+        pinocchio::SE3 world_to_mini = data.oMf[mini_base_index];
+        Eigen::Matrix3d rotation_matrix_mini = world_to_mini.rotation();
+        Eigen::Vector3d rpy = rotation_matrix_mini.eulerAngles(0,1,2);
+
+        std::cout <<"Relative transform between parent joint and child joint" << std::endl;
+        std::cout << "Translation: " << position.transpose() << std::endl;
+        std::cout << "Euler angles (r,p,y): " << euler.transpose() << std::endl;
+
+        std::cout << "Rotation of mini_base_link w.r.t world:" << std::endl;
+        std::cout << "Roll:  " << rpy[0] << std::endl;
+        std::cout << "Pitch: " << rpy[1] << std::endl;
+        std::cout << "Yaw:   " << rpy[2] << std::endl;
+
+        std_msgs::msg::Float64MultiArray mini_base_pose_msg;
+        mini_base_pose_msg.data.clear();
+        mini_base_pose_msg.data.push_back(euler[0]); 
+        mini_base_pose_msg.data.push_back(euler[1]); 
+        mini_base_pose_msg.data.push_back(euler[2]);
+        mini_base_pose_msg.data.push_back(position[0]);
+        mini_base_pose_msg.data.push_back(position[1]);
+        mini_base_pose_msg.data.push_back(position[2]);
+        mini_base_pose_msg.data = {rpy[0], rpy[1], rpy[2]};
+
+        mini_base_frame_pub->publish(mini_base_pose_msg);
+        //------------------------------------------------------------------------------------------
         // Typically, data.oMi is a vector of SE3 objects (one for each joint).
         // End-effector is the last joint (index: model.njoints - 1).
         const auto & se3_end_e = data.oMi[model.njoints - 1];
@@ -145,7 +219,25 @@ private: //For the class
             double joint_angle = angle_axis.angle();  // This gives the magnitude of rotation
             std::cout << "Joint " << i << " rotation angle (radians): " << joint_angle << std::endl;
         }
+
+        
+
+        std_msgs::msg::Float64MultiArray rot_msg;
+        rot_msg.data.resize(9);  // 3x3 matrix
+
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+                rot_msg.data[i * 3 + j] = rotation_matrix_mini(i, j);  // row-major
+
+        rotation_matrix_pub_->publish(rot_msg);
+
+        
+
     }
+
+
+    
+
 };
 
 int main(int argc, char *argv[])

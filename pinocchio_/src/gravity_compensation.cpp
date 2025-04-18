@@ -11,8 +11,8 @@ GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation"
   
   data_ = pinocchio::Data(model_);
   
-  pinocchio::SE3::Vector3 gravity(0, 0, -9.81);
-  model_.gravity.linear(gravity); //Gravity vector assigned to the robot model
+  pinocchio::SE3::Vector3 gravity(0, 0, -9.81); //multiply R from the transfrom by the gravity
+  model_.gravity.linear(gravity); //Gravity vector assigned to the robot model .. i think is this what it has to change
   
   //joint_name_map 
   joint_name_map_={

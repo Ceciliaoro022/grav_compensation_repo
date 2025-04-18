@@ -16,6 +16,12 @@ find_package(std_msgs REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+
 
 include_directories(
   include
@@ -35,6 +41,10 @@ add_executable(kinematics
   src/kinematics.cpp
 )
 
+add_executable(tf2_trial
+  src/tf2_trial.cpp
+)
+
 
 ament_target_dependencies(gravity_compensation
   rclcpp
@@ -48,6 +58,21 @@ ament_target_dependencies(kinematics
   sensor_msgs
   pinocchio
   std_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+ament_target_dependencies(tf2_trial
+  rclcpp
+  sensor_msgs
+  pinocchio
+  std_msgs
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
 )
 
 
@@ -55,6 +80,7 @@ ament_target_dependencies(kinematics
 install(TARGETS
   gravity_compensation
   kinematics
+  tf2_trial
   DESTINATION lib/${PROJECT_NAME}
 )
 
