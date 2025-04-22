@@ -11,8 +11,8 @@ GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation"
   
   data_ = pinocchio::Data(model_);
   
-  pinocchio::SE3::Vector3 gravity(0, 0, -9.81); //multiply R from the transfrom by the gravity
-  model_.gravity.linear(gravity); //Gravity vector assigned to the robot model .. i think is this what it has to change
+  //pinocchio::SE3::Vector3 gravity(0, 0, -9.81); //multiply R from the transfrom by the gravity
+  //model_.gravity.linear(gravity); //Gravity vector assigned to the robot model .. i think is this what it has to change
   
   //joint_name_map 
   joint_name_map_={
@@ -27,8 +27,13 @@ GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation"
     std::bind(&GravityCompensationNode::joint_state_callback, this, std::placeholders::_1));
 
   //rotation matrix subscriber
+  /**
+  HERE CAREFUL 
+  When using Pinocchio use /rotation_matrix_mini
+  When using tf2 use /rotation_matrix
+  **/
   rotation_matrix_sub = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-      "/rotation_matrix", 10, 
+      "/rotation_matrix_mini", 10, 
       std::bind(&GravityCompensationNode::rotation_matrix_callback, this, std::placeholders::_1));
   
   //gravity torque publisher

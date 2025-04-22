@@ -55,6 +55,8 @@ public:
             {"mini_joint2", "joint2"}
         };
 
+       
+
         std::cout << "model name: " << model.name << std::endl;
         std::cout << "URDF model " << model.name << " has " << model.njoints << " joints" << std::endl;
         std::cout << "It has " << model.nq << " degrees of freedom" << std::endl;
@@ -70,7 +72,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Loaded model: %s with DOF: %zu", model.name.c_str(), model.nq); //c_str to pass a string to functions that expect a const char*
         
         //Eigen::VectorXd q; //Because Pinocchio uses EigenValues I need to convert them
-
+        
         joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
             "/joint_states", 10, std::bind(&ForwardKinematics::jointStateCallback, this, std::placeholders::_1));
         
@@ -78,7 +80,7 @@ public:
 
         mini_base_frame_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("/mini_base_frame", 10);
 
-        rotation_matrix_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/rotation_matrix_mini", 10);
+        rotation_matrix_mini_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/rotation_matrix_mini", 10);
 
 
         timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&ForwardKinematics::computeAndPublishForwarKinematics, this));
@@ -98,7 +100,7 @@ private: //For the class
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr forward_kinematics_pub;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mini_base_frame_pub;
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_mini_pub_;
     
     rclcpp::TimerBase::SharedPtr timer_;
 
@@ -131,9 +133,7 @@ private: //For the class
                 }
                 else { //If joint not found, warning
                     RCLCPP_INFO(this->get_logger(), "Joint '%s' not found in /joint_states", gazebo_joint_name.c_str());
-                }
-                
-                
+                }  
             }
 
         }
@@ -151,7 +151,7 @@ private: //For the class
 
         std::cout << "q: " << q.transpose() << std::endl;
 
-        pinocchio::FrameIndex mini_base_index = model.getFrameId("mini_base_link"); //
+        pinocchio::FrameIndex mini_base_index = model.getFrameId("base_link"); //
 
         if (mini_base_index == 0) {
             RCLCPP_ERROR(this->get_logger(), "Frame 'mini_base_link' not found in the Pinocchio model!");
@@ -162,40 +162,28 @@ private: //For the class
             std::cout << "Frame " << i << " name: " << model.frames[i].name << std::endl;
         }
 
-        auto tool0_id = model.getFrameId("tool0");
-        auto tool0_pose = data.oMf[tool0_id]; //pose from world to tool0 frame
-
-        pinocchio::SE3 Transform_tool0_id_to_mini = data.oMf[tool0_id].inverse() * data.oMf[mini_base_index]; //oMf gives the transform from the world frame to tool0 frame
-
-
-        Eigen::Vector3d position = Transform_tool0_id_to_mini.translation();
-        Eigen::Matrix3d rotation = Transform_tool0_id_to_mini.rotation();
-        Eigen::Vector3d euler = rotation.eulerAngles(0,1,2); //
-
         pinocchio::SE3 world_to_mini = data.oMf[mini_base_index];
         Eigen::Matrix3d rotation_matrix_mini = world_to_mini.rotation();
         Eigen::Vector3d rpy = rotation_matrix_mini.eulerAngles(0,1,2);
 
-        std::cout <<"Relative transform between parent joint and child joint" << std::endl;
-        std::cout << "Translation: " << position.transpose() << std::endl;
-        std::cout << "Euler angles (r,p,y): " << euler.transpose() << std::endl;
+        Eigen::Vector3d position = world_to_mini.translation();
 
-        std::cout << "Rotation of mini_base_link w.r.t world:" << std::endl;
-        std::cout << "Roll:  " << rpy[0] << std::endl;
-        std::cout << "Pitch: " << rpy[1] << std::endl;
-        std::cout << "Yaw:   " << rpy[2] << std::endl;
+        std::cout << "Relative transform between world and mini_base_link:" << std::endl;
+        std::cout << "Translation: " << position.transpose() << std::endl;
+        std::cout << "Euler angles (r,p,y): " << rpy.transpose() << std::endl;  
+        std::cout << "Rotation matrix:\n" << rotation_matrix_mini << std::endl;
+
+
 
         std_msgs::msg::Float64MultiArray mini_base_pose_msg;
         mini_base_pose_msg.data.clear();
-        mini_base_pose_msg.data.push_back(euler[0]); 
-        mini_base_pose_msg.data.push_back(euler[1]); 
-        mini_base_pose_msg.data.push_back(euler[2]);
         mini_base_pose_msg.data.push_back(position[0]);
         mini_base_pose_msg.data.push_back(position[1]);
         mini_base_pose_msg.data.push_back(position[2]);
         mini_base_pose_msg.data = {rpy[0], rpy[1], rpy[2]};
 
         mini_base_frame_pub->publish(mini_base_pose_msg);
+
         //------------------------------------------------------------------------------------------
         // Typically, data.oMi is a vector of SE3 objects (one for each joint).
         // End-effector is the last joint (index: model.njoints - 1).
@@ -220,8 +208,6 @@ private: //For the class
             std::cout << "Joint " << i << " rotation angle (radians): " << joint_angle << std::endl;
         }
 
-        
-
         std_msgs::msg::Float64MultiArray rot_msg;
         rot_msg.data.resize(9);  // 3x3 matrix
 
@@ -229,7 +215,7 @@ private: //For the class
             for (int j = 0; j < 3; ++j)
                 rot_msg.data[i * 3 + j] = rotation_matrix_mini(i, j);  // row-major
 
-        rotation_matrix_pub_->publish(rot_msg);
+        rotation_matrix_mini_pub_->publish(rot_msg);
 
         
 

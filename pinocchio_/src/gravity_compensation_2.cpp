@@ -31,7 +31,7 @@ GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation"
     "/gravity_torques", 10);
 
   //rotation matrix mini publisher
-  rotation_matrix_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+  rotation_matrix_sub = this->create_publisher<std_msgs::msg::Float64MultiArray>(
     "/gravity_torques", 10);
     
   RCLCPP_INFO(this->get_logger(), "Gravity compensation node started");
