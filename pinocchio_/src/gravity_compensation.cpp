@@ -1,9 +1,9 @@
-#include "pinocchio_/gravity_compensation.h"
+#include "pinocchio_/gravity_compensation_trial.h"
 
 GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation")
 {
 
-  this->declare_parameter("urdf_path", "/tmp/kuka_mini_combined.urdf"); //Careful with spaces in the path..
+  this->declare_parameter("urdf_path", "rrbot_.urdf"); //Careful with spaces in the path..
   std::string urdf_path = this->get_parameter("urdf_path").as_string();
   
   pinocchio::urdf::buildModel(urdf_path, model_);

@@ -22,7 +22,6 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 
-
 include_directories(
   include
   ${rclcpp_INCLUDE_DIRS}
@@ -37,8 +36,8 @@ add_executable(gravity_compensation
   src/gravity_compensation.cpp
 )
 
-add_executable(gravity_compensation_2
-  src/gravity_compensation.cpp
+add_executable(gravity_compensation_original
+  src/gravity_compensation_original.cpp
 )
 
 add_executable(kinematics
@@ -57,7 +56,7 @@ ament_target_dependencies(gravity_compensation
   std_msgs
 )
 
-ament_target_dependencies(gravity_compensation_2
+ament_target_dependencies(gravity_compensation_original
   rclcpp
   sensor_msgs
   pinocchio
@@ -89,7 +88,7 @@ ament_target_dependencies(tf2_trial
 
 install(TARGETS
   gravity_compensation
-  gravity_compensation_2
+  gravity_compensation_original
   kinematics
   tf2_trial
   DESTINATION lib/${PROJECT_NAME}

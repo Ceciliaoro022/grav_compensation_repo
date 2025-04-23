@@ -55,6 +55,10 @@ public:
             {"mini_joint2", "joint2"}
         };
 
+        // link_name_map_={
+        //     {"mini_base_link", "base_link"}
+        // };
+
        
 
         std::cout << "model name: " << model.name << std::endl;
@@ -72,15 +76,15 @@ public:
         RCLCPP_INFO(this->get_logger(), "Loaded model: %s with DOF: %zu", model.name.c_str(), model.nq); //c_str to pass a string to functions that expect a const char*
         
         //Eigen::VectorXd q; //Because Pinocchio uses EigenValues I need to convert them
-        
+
         joint_state_sub_ = this->create_subscription<sensor_msgs::msg::JointState>(
             "/joint_states", 10, std::bind(&ForwardKinematics::jointStateCallback, this, std::placeholders::_1));
         
         forward_kinematics_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("/forward_kinematics_info", 10);
 
-        mini_base_frame_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("/mini_base_frame", 10);
+        //mini_base_frame_pub = this->create_publisher<std_msgs::msg::Float64MultiArray>("/mini_base_frame", 10);
 
-        rotation_matrix_mini_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/rotation_matrix_mini", 10);
+        //rotation_matrix_mini_pub_ = this->create_publisher<std_msgs::msg::Float64MultiArray>("/rotation_matrix_mini", 10);
 
 
         timer_ = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&ForwardKinematics::computeAndPublishForwarKinematics, this));
@@ -94,13 +98,14 @@ private: //For the class
     // If needed, you can also add: Eigen::VectorXd v;
 
     std::unordered_map<std::string, std::string> joint_name_map_;
+    //std::unordered_map<std::string, std::string> link_name_map_;
 
     //They hold the shared pointers to the publisher, subscriber and timer
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr torque_pub_; 
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr forward_kinematics_pub;
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mini_base_frame_pub;
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_mini_pub_;
+    //rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr mini_base_frame_pub;
+    //rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_mini_pub_;
     
     rclcpp::TimerBase::SharedPtr timer_;
 
@@ -138,6 +143,13 @@ private: //For the class
 
         }
 
+        std::cout << "[DEBUG] JointState names: ";
+        for (const auto &name : msg->name) std::cout << name << " ";
+        std::cout << std::endl;
+        std::cout << "[DEBUG] q: " << q.transpose() << std::endl;
+
+
+
     }
 
 
@@ -151,30 +163,43 @@ private: //For the class
 
         std::cout << "q: " << q.transpose() << std::endl;
 
-        pinocchio::FrameIndex mini_base_index = model.getFrameId("base_link"); //
+        //std::string gazebo_link_name = link_name_map_["mini_base_link"];
+        pinocchio::FrameIndex mini_base_index = model.getFrameId("mini_link2"); //mini_base_link
 
-        if (mini_base_index == 0) {
-            RCLCPP_ERROR(this->get_logger(), "Frame 'mini_base_link' not found in the Pinocchio model!");
-            return;
-        }
+        // if (mini_base_index == 0) {
+        //     RCLCPP_ERROR(this->get_logger(), "Frame 'mini_base_link' not found in the Pinocchio model!");
+        //     return;
+        // }
 
-        for (size_t i = 0; i < model.frames.size(); ++i) {
-            std::cout << "Frame " << i << " name: " << model.frames[i].name << std::endl;
-        }
+        // for (size_t i = 0; i < model.frames.size(); ++i) {
+        //     std::cout << "Frame " << i << " name: " << model.frames[i].name << std::endl;
+        // }
+
+
+        //pinocchio::SE3 world_to_mini = data.oMf[mini_base_index];
+        //Eigen::Matrix3d rotation_matrix_mini = world_to_mini.rotation();
+        //Eigen::Vector3d rpy = rotation_matrix_mini.eulerAngles(0,1,2);
 
         pinocchio::SE3 world_to_mini = data.oMf[mini_base_index];
-        Eigen::Matrix3d rotation_matrix_mini = world_to_mini.rotation();
-        Eigen::Vector3d rpy = rotation_matrix_mini.eulerAngles(0,1,2);
+        std::cout << "[DEBUG] Translation: " << world_to_mini.translation().transpose() << std::endl;
+        std::cout << "[DEBUG] Rotation:\n" << world_to_mini.rotation() << std::endl;
 
-        Eigen::Vector3d position = world_to_mini.translation();
-
-        std::cout << "Relative transform between world and mini_base_link:" << std::endl;
-        std::cout << "Translation: " << position.transpose() << std::endl;
-        std::cout << "Euler angles (r,p,y): " << rpy.transpose() << std::endl;  
-        std::cout << "Rotation matrix:\n" << rotation_matrix_mini << std::endl;
+        pinocchio::JointIndex j1_id = model.getJointId("mini_joint1");
+        pinocchio::JointIndex j2_id = model.getJointId("mini_joint2");
+        std::cout << "[DEBUG] mini_joint1 q: " << q[model.joints[j1_id].idx_q()] << std::endl;
+        std::cout << "[DEBUG] mini_joint2 q: " << q[model.joints[j2_id].idx_q()] << std::endl;
 
 
+        //Eigen::Vector3d position = world_to_mini.translation();
 
+        //std::cout << "Relative transform between world and mini_base_link:" << std::endl;
+        //std::cout << "Translation: " << position.transpose() << std::endl;
+        //std::cout << "Euler angles (r,p,y): " << rpy.transpose() << std::endl;  
+        //std::cout << "Rotation matrix:\n" << rotation_matrix_mini << std::endl;
+        std::cout << "Rotation matrix from world to the mini base_joint:\n " << world_to_mini <<std::endl;
+
+
+        /*
         std_msgs::msg::Float64MultiArray mini_base_pose_msg;
         mini_base_pose_msg.data.clear();
         mini_base_pose_msg.data.push_back(position[0]);
@@ -183,6 +208,7 @@ private: //For the class
         mini_base_pose_msg.data = {rpy[0], rpy[1], rpy[2]};
 
         mini_base_frame_pub->publish(mini_base_pose_msg);
+        */
 
         //------------------------------------------------------------------------------------------
         // Typically, data.oMi is a vector of SE3 objects (one for each joint).
@@ -200,6 +226,7 @@ private: //For the class
 
         forward_kinematics_pub->publish(end_e_position_msg);
 
+        /*
         for (size_t i = 0; i < model.njoints; ++i)
         {
             const auto & se3 = data.oMi[i];
@@ -216,6 +243,7 @@ private: //For the class
                 rot_msg.data[i * 3 + j] = rotation_matrix_mini(i, j);  // row-major
 
         rotation_matrix_mini_pub_->publish(rot_msg);
+        */
 
         
 

@@ -24,14 +24,17 @@ public:
 
 private:
   void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
+  void rotation_matrix_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
   
   std::string eigen_vector_to_string(const Eigen::VectorXd& vec);
 
   pinocchio::Model model_;
   pinocchio::Data data_;
+  std::unordered_map<std::string, std::string> joint_name_map_;
   
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
   rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr gravity_torque_pub_;
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr rotation_matrix_sub;
 };
 
 #endif 
