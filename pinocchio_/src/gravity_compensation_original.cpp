@@ -44,16 +44,6 @@ void GravityCompensationNode::joint_state_callback(const sensor_msgs::msg::Joint
   }
 
 
-  //New
-  // if (msg->position.size() != static_cast<size_t>(model_.nv)) {
-  //   RCLCPP_ERROR(this->get_logger(), "Mismatch: msg->position.size() = %zu, expected = %d", msg->position.size(), model_.nv);
-  //   return;
-  // }
-
-   // for (size_t i = 0; i < msg->position.size(); ++i) {
-  //   q(i) = msg->position[i];
-  // }
-
 
   
   Eigen::VectorXd v = Eigen::VectorXd::Zero(model_.nv);
