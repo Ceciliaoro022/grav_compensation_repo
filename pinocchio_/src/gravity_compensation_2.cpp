@@ -29,21 +29,20 @@ GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation"
 void GravityCompensationNode::joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
 {
   
+  //New
   std::vector<std::string> target_joint_names = {"joint1", "joint2"};  
   Eigen::VectorXd q(model_.nv);
 
   for (size_t i = 0; i < target_joint_names.size(); ++i) {
-    auto it = std::find(msg->name.begin(), msg->name.end(), target_joint_names[i]);
-    if (it != msg->name.end()) {
-      size_t index = std::distance(msg->name.begin(), it);
-      q(i) = msg->position[index];
+    auto it = std::find(msg->name.begin(), msg->name.end(), target_joint_names[i]); //Looks for joint1 and 2 from the target names above
+    if (it != msg->name.end()) { //If the joint is not found..
+      size_t index = std::distance(msg->name.begin(), it); //Distance between begin to iterator
+      q(i) = msg->position[index]; //Checks the q from the actual position where my joint is in the /joint_states
     } else {
       RCLCPP_ERROR(this->get_logger(), "Joint %s not found in /joint_states!", target_joint_names[i].c_str());
       return; // exit to avoid sending bad data
     }
   }
-
-
 
   
   Eigen::VectorXd v = Eigen::VectorXd::Zero(model_.nv);

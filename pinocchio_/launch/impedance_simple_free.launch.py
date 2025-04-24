@@ -24,8 +24,8 @@ def generate_launch_description():
 
     impedance_node_ = Node(
         package='impedance_node',
-        executable='impedance_node',
-        name='impedance_node',
+        executable='impedance_node_free',
+        name='impedance_node_free',
         output='screen',
     )
     

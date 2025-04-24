@@ -36,8 +36,8 @@ add_executable(gravity_compensation
   src/gravity_compensation.cpp
 )
 
-add_executable(gravity_compensation_original
-  src/gravity_compensation_original.cpp
+add_executable(gravity_compensation_2
+  src/gravity_compensation_2.cpp
 )
 
 add_executable(kinematics
@@ -56,7 +56,7 @@ ament_target_dependencies(gravity_compensation
   std_msgs
 )
 
-ament_target_dependencies(gravity_compensation_original
+ament_target_dependencies(gravity_compensation_2
   rclcpp
   sensor_msgs
   pinocchio
@@ -88,7 +88,7 @@ ament_target_dependencies(tf2_trial
 
 install(TARGETS
   gravity_compensation
-  gravity_compensation_original
+  gravity_compensation_2
   kinematics
   tf2_trial
   DESTINATION lib/${PROJECT_NAME}
