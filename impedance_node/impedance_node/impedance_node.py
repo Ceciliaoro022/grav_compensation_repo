@@ -29,9 +29,9 @@ class ImpedanceNode(Node):
 
 
         # State variables
-        self.q_pos_current = np.zeros(2) #Change the number depending on the number of joints, for 5DoF (5)
-        self.q_vel_current = np.zeros(2)
-        self.gravity_torque_data = np.zeros(2)
+        self.q_pos_current = np.zeros(9) #Change the number depending on the number of joints, for 5DoF (5)
+        self.q_vel_current = np.zeros(9)
+        self.gravity_torque_data = np.zeros(9)
         self.q_desired = None
         self.received_q_desired = False
         self.received_gravity = False
@@ -61,11 +61,11 @@ class ImpedanceNode(Node):
 
         try:
             indices = [msg.name.index(joint_name) for joint_name in target_joint_names] #For each joint_name inside the list target_joint_names, find its index in the msg (/joint_states)
-            self.q_pos_current = np.array([msg.position[i] for i in indices])
+            self.q_pos_current = np.array([msg.position[i] for i in indices]) #use the indices index as i 
             self.q_vel_current = np.array([msg.velocity[i] for i in indices])
 
             if self.q_desired is None:
-                self.q_desired = self.q_pos_current.copy()
+                self.q_desired = self.q_pos_current.copy() #If no q_desired, use current position as command
     
         except ValueError as error_:
             self.get_logger().error(f"One or more joint names not found in /joint_states: {error_}")
@@ -80,7 +80,7 @@ class ImpedanceNode(Node):
 
     def gravity_torque_callback (self, msg):
         if len(msg.data) >= 2: #For rbdl use "effort", for pinocchio use "data"
-            self.gravity_torque_data = np.array(msg.data)
+            self.gravity_torque_data = np.array(msg.data[-2:])
             self.received_gravity = True
 
     def compute_and_send_torque(self):

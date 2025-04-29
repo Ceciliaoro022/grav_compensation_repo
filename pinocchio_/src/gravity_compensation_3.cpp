@@ -1,14 +1,15 @@
 #include "pinocchio_/gravity_compensation.h"
 
+#include "pinocchio_/rrbot_description.hpp"
+
+
+using namespace pinocchio;
+
+
 GravityCompensationNode::GravityCompensationNode() : Node("gravity_compensation")
 {
 
-  this->declare_parameter("urdf_path", "/home/user/10April_kuka_mini/src/grav_compensation_repo/pinocchio_/urdf/rrbot_1.urdf");
-  std::string urdf_path = this->get_parameter("urdf_path").as_string();
-  
-  pinocchio::urdf::buildModel(urdf_path, model_);
-  RCLCPP_INFO(this->get_logger(), "Model loaded: %s", model_.name.c_str());
-  
+  model_ = buildMini2RModel();
   
   data_ = pinocchio::Data(model_);
   

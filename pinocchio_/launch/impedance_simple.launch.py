@@ -5,7 +5,7 @@ from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
     
-    default_urdf_path = '/home/user/10April_kuka_mini/src/grav_compensation_repo/pinocchio_/urdf/rrbot_1.urdf'
+    default_urdf_path = '/home/user/10April_kuka_mini/src/kuka_mini_repository/mini_control/description/urdf/rrbot2.urdf'
     
     urdf_path_arg = DeclareLaunchArgument(
         'urdf_path',
@@ -14,8 +14,8 @@ def generate_launch_description():
 
     gravity_compensation_pinocchio = Node(
         package='pinocchio_',
-        executable='gravity_compensation_2',
-        name='gravity_compensation_2',
+        executable='gravity_compensation_4',
+        name='gravity_compensation_4',
         output='screen',
         parameters=[{
             'urdf_path': LaunchConfiguration('urdf_path')

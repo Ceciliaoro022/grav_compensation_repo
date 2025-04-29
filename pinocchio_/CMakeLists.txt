@@ -20,10 +20,13 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(rcl_interfaces REQUIRED)
+
 
 
 include_directories(
   include
+  src
   ${rclcpp_INCLUDE_DIRS}
   ${pinocchio_INCLUDE_DIRS}
   ${sensor_msgs_INCLUDE_DIRS}
@@ -38,6 +41,15 @@ add_executable(gravity_compensation
 
 add_executable(gravity_compensation_2
   src/gravity_compensation_2.cpp
+)
+
+add_executable(gravity_compensation_3
+  src/gravity_compensation_3.cpp
+  src/rrbot_description.cpp
+)
+
+add_executable(gravity_compensation_4
+  src/gravity_compensation_4.cpp
 )
 
 add_executable(kinematics
@@ -57,6 +69,21 @@ ament_target_dependencies(gravity_compensation
 )
 
 ament_target_dependencies(gravity_compensation_2
+  rclcpp
+  sensor_msgs
+  pinocchio
+  std_msgs
+)
+
+ament_target_dependencies(gravity_compensation_3
+  rclcpp
+  sensor_msgs
+  pinocchio
+  std_msgs
+  rcl_interfaces
+)
+
+ament_target_dependencies(gravity_compensation_4
   rclcpp
   sensor_msgs
   pinocchio
@@ -89,6 +116,8 @@ ament_target_dependencies(tf2_trial
 install(TARGETS
   gravity_compensation
   gravity_compensation_2
+  gravity_compensation_3
+  gravity_compensation_4
   kinematics
   tf2_trial
   DESTINATION lib/${PROJECT_NAME}
@@ -106,6 +135,15 @@ install(DIRECTORY
 install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
+
+target_link_libraries(gravity_compensation_3
+  /opt/pinocchio/lib/libpinocchio_default.so
+)
+
+target_link_libraries(gravity_compensation_4
+  /opt/pinocchio/lib/libpinocchio_default.so
+)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
